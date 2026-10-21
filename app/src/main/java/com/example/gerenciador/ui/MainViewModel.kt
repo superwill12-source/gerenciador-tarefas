@@ -69,7 +69,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun toast(msg: String) = withContext(Dispatchers.Main) {
-        Toast.makeText(getApplication(), msg, Toast.LENGTH_SHORT).show()
+        private fun toast(msg: String) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            Toast.makeText(getApplication<Application>(), msg, Toast.LENGTH_SHORT).show()
+        }
     }
 }
