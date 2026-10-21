@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Gerenciador" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
