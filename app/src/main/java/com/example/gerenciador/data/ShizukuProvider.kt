@@ -63,6 +63,12 @@ class ShizukuProvider(private val ctx: Context) : StatsProvider {
         return true
     }
 
+    /** `am kill-all` encerra com segurança todos os processos em cache/segundo plano. */
+    override suspend fun cleanAll(): Boolean {
+        sh("am kill-all")
+        return true
+    }
+
     private fun labelOf(pm: PackageManager, pkg: String): String = try {
         pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
     } catch (e: Exception) { pkg }

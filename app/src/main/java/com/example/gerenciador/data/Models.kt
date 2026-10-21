@@ -29,4 +29,7 @@ interface StatsProvider {
     val isFull: Boolean
     suspend fun snapshot(): Snapshot
     suspend fun kill(packageName: String): Boolean
+
+    /** Encerra todos os apps em segundo plano (processos que o Android permite encerrar). */
+    suspend fun cleanAll(): Boolean
 }

@@ -18,6 +18,11 @@ Feito com Kotlin + Jetpack Compose.
 > nem podem encerrá-los de verdade. O [Shizuku](https://github.com/RikkaApps/Shizuku) concede ao app
 > permissão de nível ADB sem precisar de root.
 
+## Limpar apps em segundo plano
+O botão **Limpar apps em segundo plano** encerra os apps que não estão em uso e mostra quanta RAM foi liberada.
+O efeito é temporário: o Android pode reabrir alguns apps. No modo Shizuku usa `am kill-all`; no modo limitado,
+`killBackgroundProcesses` em cada app instalado.
+
 ## Como usar o Shizuku
 1. Instale o app **Shizuku** (Play Store ou GitHub).
 2. Inicie o serviço (Depuração sem fio nas Opções do desenvolvedor, ou root).

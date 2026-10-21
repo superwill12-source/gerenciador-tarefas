@@ -20,6 +20,8 @@ data class UiState(
     val ramHist: List<Float> = emptyList(),
     val cpuHist: List<Float> = emptyList(),
     val gpuHist: List<Float> = emptyList(),
+    val cleaning: Boolean = false,
+    val lastClean: String? = null,
 )
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
@@ -28,22 +30,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state
 
+    private fun provider(): StatsProvider = if (shizuku.isReady()) shizuku else normal
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
-                val provider: StatsProvider = if (shizuku.isReady()) shizuku else normal
-                val snap = try { provider.snapshot() } catch (e: Exception) { null }
+                val p = provider()
+                val snap = try { p.snapshot() } catch (e: Exception) { null }
                 if (snap != null) {
                     val s = snap.stats
                     val cpu = s.cpuPercent ?: s.cores.takeIf { it.isNotEmpty() }?.map { it.percent }?.average()?.toFloat()
+                    val gpu = s.gpuPercent
                     _state.update {
                         it.copy(
-                            full = provider.isFull,
+                            full = p.isFull,
                             stats = s,
                             procs = snap.procs,
                             ramHist = (it.ramHist + s.ramPercent).takeLast(60),
                             cpuHist = if (cpu != null) (it.cpuHist + cpu).takeLast(60) else it.cpuHist,
-                            gpuHist = if (s.gpuPercent != null) (it.gpuHist + s.gpuPercent).takeLast(60) else it.gpuHist,
+                            gpuHist = if (gpu != null) (it.gpuHist + gpu).takeLast(60) else it.gpuHist,
                         )
                     }
                 }
@@ -54,9 +59,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun kill(pkg: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val provider: StatsProvider = if (shizuku.isReady()) shizuku else normal
-            val ok = try { provider.kill(pkg) } catch (e: Exception) { false }
+            val ok = try { provider().kill(pkg) } catch (e: Exception) { false }
             toast(if (ok) "Encerrado: $pkg" else "Falha ao encerrar")
+        }
+    }
+
+    /** Encerra todos os apps em segundo plano e mostra quanta RAM foi liberada (temporário). */
+    fun cleanAll() {
+        if (_state.value.cleaning) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { it.copy(cleaning = true) }
+            val app = getApplication<Application>()
+            val before = SysInfo.memory(app).second
+            try { provider().cleanAll() } catch (e: Exception) { }
+            delay(1500)
+            val after = SysInfo.memory(app).second
+            val freed = (before - after).coerceAtLeast(0L)
+            val msg = "Limpeza concluída: ${fmtBytes(freed)} liberados (temporário)"
+            _state.update { it.copy(cleaning = false, lastClean = msg) }
+            toast(msg)
         }
     }
 
@@ -69,7 +90,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-        private fun toast(msg: String) {
+    private fun toast(msg: String) {
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             Toast.makeText(getApplication<Application>(), msg, Toast.LENGTH_SHORT).show()
         }

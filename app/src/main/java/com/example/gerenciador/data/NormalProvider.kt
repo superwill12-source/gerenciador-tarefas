@@ -28,4 +28,12 @@ class NormalProvider(private val ctx: Context) : StatsProvider {
         ctx.getSystemService(ActivityManager::class.java).killBackgroundProcesses(packageName)
         return true
     }
+
+    override suspend fun cleanAll(): Boolean {
+        val am = ctx.getSystemService(ActivityManager::class.java)
+        ctx.packageManager.getInstalledApplications(0)
+            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 && it.packageName != ctx.packageName }
+            .forEach { am.killBackgroundProcesses(it.packageName) }
+        return true
+    }
 }
